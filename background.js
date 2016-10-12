@@ -1,5 +1,5 @@
 
-var facebook = {
+let facebook = {
   clientId: '1094807753900920',
   clientSecret: '3d4af261312493c4397e8003c9139500',
   token: null,
@@ -7,7 +7,7 @@ var facebook = {
 
   getAuthURL(redirectURL) {
     return 'https://www.facebook.com/dialog/oauth?client_id=' + this.clientId +
-           '&reponse_type=token&access_type=online' +
+           '&reponse_type=token&access_type=online&display=popup' +
            '&redirect_uri=' + encodeURIComponent(redirectURL);
   },
 
@@ -60,25 +60,23 @@ var facebook = {
 
 
 function parseSearchParams(redirectUri) {
-  let paramRe = new RegExp('[#\?](.*)');
-  let matches = redirectUri.match(paramRe);
-  if (!matches || matches.length < 1)
+  let m = redirectUri.match(/[#\?](.*)/);
+  if (!m || m.length < 1)
     return {};
-  return parseParams(matches[1].split("#")[0]);
+  return parseParams(m[1].split("#")[0]);
 }
 
 function parseParams(searchParams) {
-  let pairs = searchParams.split(/&/);
-  let values = {};
-  pairs.forEach(function(pair) {
-    let nameval = pair.split(/=/);
-    values[nameval[0]] = nameval[1];
+  let params = {};
+  searchParams.split('&').forEach(pair => {
+    let val = pair.split('=');
+    params[val[0]] = val[1];
   });
-  return values;
+  return params;
 }
 
 function authorize(provider, interactive) {
-  var redirectUri = chrome.identity.getRedirectURL('/provider_cb');
+  let redirectUri = chrome.identity.getRedirectURL('/provider_cb');
 
   return new Promise((resolve, reject) => {
     if (provider.token) {
@@ -86,26 +84,26 @@ function authorize(provider, interactive) {
       return;
     }
 
-    var options = {
+    let options = {
       interactive: interactive,
       url: provider.getAuthURL(redirectUri)
     };
 
     chrome.identity.launchWebAuthFlow(options, function(redirectURL) {
       if (chrome.runtime.lastError) {
-        reject(new Error(chrome.runtime.lastError));
+        reject(new Error(chrome.runtime.lastError.message));
         return;
       }
 
       // #access_token={value}&refresh_token={value} or #code={value}
       let params = parseSearchParams(redirectURL);
-      if (params.access_token) {
+      if (params.error) {
+        reject(new Error(params.error_description));
+      } else if (params.access_token) {
         provider.token = params.access_token;
         resolve(provider.token);
       } else if (params.code) {
-        provider.exchangeCodeForToken(params.code, redirectUri).then((token) => {
-          resolve(token);
-        }).catch(error => {
+        provider.exchangeCodeForToken(params.code, redirectUri).then(resolve).catch(error => {
           reject(new Error(error));
         });
       } else
@@ -121,10 +119,7 @@ function xhrWithAuth(provider, method, url, interactive) {
       xhr.open(method, url);
       xhr.setRequestHeader('Authorization', 'Bearer ' + token);
       xhr.onload = () => {
-        if (xhr.status == 200) {
-          resolve({ status: xhr.status, response: xhr.response });
-        } else
-          reject({ status: xhr.status, response: xhr.response });
+        (xhr.status == 200 ? resolve : reject)({ status: xhr.status, response: xhr.response });
       };
       xhr.onerror = () => {
         reject({ status: xhr.status, response: xhr.response });
