@@ -1,7 +1,10 @@
 {
-  "name": "facebook chrome.identity sample",
+  "name": "chrome.identity example",
   "version": "1",
   "manifest_version": 2,
+  "applications": {
+    "gecko": { "id": "identity.example@mozilla.org" }
+  },
   "background": {
     "scripts": ["background.js"]
   },
@@ -10,7 +13,9 @@
   },
   "permissions": [
     "identity",
-    "https://www.facebook.com/",
-    "https://graph.facebook.com/"
+    "*://www.facebook.com/*",
+    "*://graph.facebook.com/*",
+    "*://www.googleapis.com/*",
+    "*://accounts.google.com/*"
   ]
 }

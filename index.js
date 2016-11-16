@@ -1,5 +1,5 @@
-function getUserInfo(intractive=true) {
-  chrome.runtime.sendMessage({"type": "getUserInfo", "interactive": intractive});
+function getUserInfo(provider, intractive=true) {
+  chrome.runtime.sendMessage({"type": "getUserInfo", provider, "interactive": intractive});
 }
 
 function revoke() {
@@ -17,7 +17,7 @@ function messageListener(message) {
 
 window.onload = () => {
   chrome.runtime.onMessage.addListener(messageListener);
-  getUserInfo(false);
-  document.getElementById('signin').onclick = () => { getUserInfo(); };
+  document.getElementById('facebook-signin').onclick = () => { getUserInfo("facebook"); };
+  document.getElementById('google-signin').onclick = () => { getUserInfo("google"); };
   document.getElementById('revoke').onclick = revoke;
 };
